@@ -1,0 +1,278 @@
+:root {
+  color-scheme: dark;
+  --bg: #12140f;
+  --soil: #1c1a12;
+  --soil-line: #33301f;
+  --text: #eae6d8;
+  --text-dim: #a8a290;
+  --accent: #d9c25a;
+  --danger: #e0654f;
+  --ok: #6fbf73;
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(ellipse at top, #201d14 0%, var(--bg) 60%);
+  color: var(--text);
+}
+
+.topbar {
+  padding: 1.25rem 1.5rem 1rem;
+  border-bottom: 1px solid var(--soil-line);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.75rem 1.5rem;
+}
+
+.topbar h1 {
+  margin: 0;
+  font-size: 1.4rem;
+  letter-spacing: 0.02em;
+}
+
+.logo {
+  filter: saturate(1.2);
+}
+
+.subtitle {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  flex: 1;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.status-pill {
+  font-size: 0.75rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  background: #2a2818;
+  border: 1px solid var(--soil-line);
+  color: var(--text-dim);
+}
+
+.status-pill.status-connected {
+  color: var(--ok);
+  border-color: var(--ok);
+}
+
+.status-pill.status-connecting {
+  color: var(--accent);
+}
+
+.status-pill.status-error {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+.seed-btn {
+  background: var(--accent);
+  color: #201d10;
+  border: none;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.seed-btn:hover {
+  box-shadow: 0 0 0 3px rgba(217, 194, 90, 0.25);
+}
+
+.seed-btn:active {
+  transform: translateY(1px);
+}
+
+.seed-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+#farm {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  padding: 1.5rem;
+  align-content: flex-start;
+}
+
+.empty-hint {
+  color: var(--text-dim);
+  font-size: 0.9rem;
+  padding: 2rem;
+  border: 1px dashed var(--soil-line);
+  border-radius: 12px;
+  width: 100%;
+  text-align: center;
+}
+
+.territory {
+  position: relative;
+  width: 340px;
+  height: 220px;
+  background:
+    repeating-linear-gradient(135deg, var(--soil) 0 10px, #1a180f 10px 20px);
+  border: 1px solid var(--soil-line);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.45);
+}
+
+.territory-label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 0.4rem 0.7rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: var(--text);
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.55), transparent);
+  z-index: 5;
+  pointer-events: none;
+  text-transform: none;
+}
+
+.territory-count {
+  color: var(--text-dim);
+  font-weight: 400;
+  margin-left: 0.35rem;
+}
+
+.critter {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 26px;
+  height: 26px;
+  transform: translate(0, 0);
+  transition: opacity 0.6s ease;
+  will-change: transform;
+  z-index: 3;
+}
+
+.critter svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6));
+}
+
+.critter.fading {
+  opacity: 0;
+}
+
+.critter .bubble {
+  position: absolute;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(20, 18, 10, 0.92);
+  border: 1px solid var(--soil-line);
+  color: var(--text);
+  font-size: 0.65rem;
+  line-height: 1.25;
+  padding: 0.3rem 0.5rem;
+  border-radius: 8px;
+  white-space: nowrap;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+  z-index: 6;
+}
+
+.critter .bubble .step {
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.critter .bubble .msg {
+  display: block;
+  color: var(--text-dim);
+  white-space: normal;
+}
+
+.critter .agent-tag {
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.55rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.critter.status-done .bubble .step {
+  color: var(--ok);
+}
+
+.critter.status-error .bubble .step {
+  color: var(--danger);
+}
+
+.event-flash {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  transform: translate(-50%, -50%);
+  animation: flash-pop 0.9s ease-out forwards;
+  pointer-events: none;
+  z-index: 4;
+}
+
+@keyframes flash-pop {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(0.5);
+  }
+  70% {
+    opacity: 0.8;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(3.2);
+  }
+}
+
+.legend {
+  padding: 0.75rem 1.5rem 1.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem 1.2rem;
+  color: var(--text-dim);
+  font-size: 0.75rem;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.legend-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}

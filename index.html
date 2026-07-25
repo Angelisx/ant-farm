@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ant Farm — Live Agent Activity</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐜</text></svg>" />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <h1><span class="logo">🐜</span> Ant Farm</h1>
+      <p class="subtitle">watching your coding agents work, live</p>
+      <div class="controls">
+        <span id="connection-status" class="status-pill status-connecting">connecting…</span>
+        <button id="seed-btn" class="seed-btn">Seed demo colony</button>
+      </div>
+    </header>
+    <main id="farm"></main>
+    <footer class="legend" id="legend"></footer>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
