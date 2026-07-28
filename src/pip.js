@@ -183,16 +183,14 @@ function waitForFrame(v) {
   });
 }
 
-async function trySystemPip() {
-  const v = ensureVideo();
-  if (!stream) {
-    stream = canvas.captureStream(FPS);
-    v.srcObject = stream;
-  }
+async function presentVideo(v, srcStream) {
+  if (v.srcObject !== srcStream) v.srcObject = srcStream;
   v.classList.add("live"); // must be visibly rendered for WebKit
   await v.play();
   await waitForFrame(v);
+}
 
+async function requestPip(v) {
   if (document.pictureInPictureEnabled && v.requestPictureInPicture) {
     await v.requestPictureInPicture();
   } else if (typeof v.webkitSetPresentationMode === "function") {
@@ -205,6 +203,61 @@ async function trySystemPip() {
   } else {
     throw new Error("no picture-in-picture API");
   }
+}
+
+// iOS refuses PiP for locally-captured canvas streams but allows it for
+// "remote" video-call streams. Pipe the canvas through an on-device WebRTC
+// loopback so the ants arrive as an incoming call feed.
+let pcSend = null;
+let pcRecv = null;
+
+function closeLoopback() {
+  pcSend?.close();
+  pcRecv?.close();
+  pcSend = null;
+  pcRecv = null;
+}
+
+async function loopback(srcStream) {
+  closeLoopback();
+  pcSend = new RTCPeerConnection();
+  pcRecv = new RTCPeerConnection();
+  pcSend.onicecandidate = (e) => e.candidate && pcRecv.addIceCandidate(e.candidate).catch(() => {});
+  pcRecv.onicecandidate = (e) => e.candidate && pcSend.addIceCandidate(e.candidate).catch(() => {});
+
+  const remote = new Promise((resolve, reject) => {
+    pcRecv.ontrack = (e) => resolve(e.streams[0] || new MediaStream([e.track]));
+    setTimeout(() => reject(new Error("loopback timed out")), 4000);
+  });
+
+  for (const track of srcStream.getTracks()) pcSend.addTrack(track, srcStream);
+  const offer = await pcSend.createOffer();
+  await pcSend.setLocalDescription(offer);
+  await pcRecv.setRemoteDescription(offer);
+  const answer = await pcRecv.createAnswer();
+  await pcRecv.setLocalDescription(answer);
+  await pcSend.setRemoteDescription(answer);
+  return remote;
+}
+
+async function trySystemPip() {
+  const v = ensureVideo();
+  if (!stream) stream = canvas.captureStream(FPS);
+
+  // rung 1: hand the canvas stream to PiP directly
+  try {
+    await presentVideo(v, stream);
+    await requestPip(v);
+    mode = "pip";
+    return;
+  } catch (err) {
+    console.warn("Direct PiP refused, trying WebRTC loopback:", err);
+  }
+
+  // rung 2: same pixels, disguised as an incoming video call
+  const remoteStream = await loopback(stream);
+  await presentVideo(v, remoteStream);
+  await requestPip(v);
   mode = "pip";
 }
 
@@ -265,6 +318,7 @@ function deactivate() {
     corner = null;
   }
   mode = null;
+  closeLoopback();
   stopDrawing();
   btn.textContent = "⤡ Minimize";
 }
