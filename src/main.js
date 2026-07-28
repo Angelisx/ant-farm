@@ -330,6 +330,33 @@ function subscribeRealtime() {
   return channel;
 }
 
+// Live state snapshot for the picture-in-picture mirror (src/pip.js).
+export function getColonySnapshot() {
+  const byRepo = new Map();
+  for (const state of runs.values()) {
+    const repo = state.data.repo;
+    if (!byRepo.has(repo)) {
+      const el = territories.get(repo)?.el;
+      byRepo.set(repo, {
+        repo,
+        w: el?.clientWidth || 340,
+        h: el?.clientHeight || 220,
+        ants: [],
+      });
+    }
+    byRepo.get(repo).ants.push({
+      name: state.data.agent_name,
+      color: colorForAgent(state.data.agent_name),
+      x: state.x,
+      y: state.y,
+      step: state.data.current_step || state.data.status,
+      status: state.data.status,
+      fading: !!state.fading,
+    });
+  }
+  return [...byRepo.values()];
+}
+
 seedBtn.addEventListener("click", async () => {
   seedBtn.disabled = true;
   seedBtn.textContent = "Seeding…";
