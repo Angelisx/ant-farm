@@ -98,17 +98,63 @@ body {
   transform: translateY(1px);
 }
 
-/* The PiP source video: must exist in the DOM and be technically visible for
-   Safari to allow picture-in-picture, but stays imperceptible. */
+/* The PiP source video. WebKit only allows picture-in-picture for a video
+   that is genuinely rendered, so while active it shows as a small thumbnail
+   in the corner (and doubles as a "mirror is live" indicator). */
 .pip-video {
+  display: none;
   position: fixed;
-  bottom: 0;
-  right: 0;
-  width: 2px;
-  height: 2px;
-  opacity: 0.01;
-  pointer-events: none;
-  z-index: -1;
+  bottom: 12px;
+  right: 12px;
+  width: 168px;
+  height: 112px;
+  border: 1px solid var(--soil-line);
+  border-radius: 10px;
+  background: var(--bg);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
+  z-index: 50;
+}
+
+.pip-video.live {
+  display: block;
+}
+
+/* Fallback when the system PiP player refuses (common on iOS for canvas
+   streams): the same live canvas as a draggable in-page corner widget. */
+.pip-corner {
+  position: fixed;
+  bottom: 12px;
+  right: 12px;
+  width: min(240px, 60vw);
+  border: 1px solid var(--soil-line);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.55);
+  z-index: 60;
+  touch-action: none;
+  cursor: grab;
+  background: var(--bg);
+}
+
+.pip-corner canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.pip-corner-close {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(20, 18, 10, 0.8);
+  color: var(--text-dim);
+  font-size: 0.7rem;
+  cursor: pointer;
+  line-height: 1;
 }
 
 .seed-btn {
