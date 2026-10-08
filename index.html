@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Ant Farm — Live Agent Activity</title>
+    <title>Ant Farm — Live Worker Dashboard</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐜</text></svg>" />
     <link rel="stylesheet" href="/src/style.css" />
     <link rel="manifest" href="/manifest.webmanifest" />
@@ -16,14 +16,31 @@
   <body>
     <header class="topbar">
       <h1><span class="logo">🐜</span> Ant Farm</h1>
-      <p class="subtitle">watching your coding agents work, live</p>
+      <p class="subtitle">watching your AI workforce work, live</p>
+      <div id="stats-bar" class="stats-bar">
+        <div class="stat"><span class="stat-value" id="stat-working">0</span><span class="stat-label">working</span></div>
+        <div class="stat stat-blocked"><span class="stat-value" id="stat-blocked">0</span><span class="stat-label">blocked</span></div>
+        <div class="stat"><span class="stat-value" id="stat-repos">0</span><span class="stat-label">repos</span></div>
+        <div class="stat stat-done"><span class="stat-value" id="stat-done">0</span><span class="stat-label">done (1h)</span></div>
+      </div>
       <div class="controls">
         <span id="connection-status" class="status-pill status-connecting">connecting…</span>
         <button id="pip-btn" class="pip-btn" title="Float the colony in a corner window over other apps">⤡ Minimize</button>
         <button id="seed-btn" class="seed-btn">Seed demo colony</button>
       </div>
     </header>
-    <main id="farm"></main>
+    <main class="layout">
+      <section id="farm-wrap">
+        <div id="farm"></div>
+      </section>
+      <aside id="detail-panel" class="detail-panel">
+        <div class="detail-empty">Click an agent to see its live reasoning stream, current file, and log tail here.</div>
+      </aside>
+    </main>
+    <section class="activity-feed-wrap">
+      <div class="activity-feed-header">Live activity feed <span class="activity-feed-hint">(all agents, all repos)</span></div>
+      <ul id="activity-feed" class="activity-feed"></ul>
+    </section>
     <footer class="legend" id="legend"></footer>
     <script type="module" src="/src/main.js"></script>
     <script type="module" src="/src/pip.js"></script>

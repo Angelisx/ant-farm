@@ -3,12 +3,51 @@ import { supabase } from "./supabase.js";
 const DEMO_AGENTS = ["feature", "ui", "perf", "bugfix"];
 const DEMO_REPOS = ["card-tracker", "ant-farm", "personal-dashboard"];
 
+const FILES_BY_STEP = {
+  planning: null,
+  exploring: ["src/main.js", "src/App.tsx", "README.md"],
+  editing: ["src/components/Card.tsx", "src/lib/utils.ts", "src/main.js"],
+  testing: ["tests/app.test.ts"],
+  committing: null,
+};
+
+const THINKING_SCRIPT = {
+  planning: [
+    "Reading the task description and checking repo layout…",
+    "Looks like this touches the dashboard module — scanning for related components.",
+  ],
+  exploring: [
+    "Searching for where this feature would plug in...",
+    "Found 3 candidate files. Reading the most relevant one now.",
+  ],
+  editing: [
+    "Drafting the change — adding the new prop and wiring state.",
+    "Updating the component to handle the new case.",
+    "Double-checking this doesn't break the existing layout.",
+  ],
+  testing: [
+    "Running the test suite to confirm nothing broke.",
+    "One test is flaky — re-running to confirm it's unrelated.",
+  ],
+  committing: [
+    "Writing a commit message and pushing the branch.",
+  ],
+};
+
+const LOG_SCRIPT = {
+  planning: ["$ git status", "On branch main, nothing to commit"],
+  exploring: ["$ rg -n 'TODO' src/", "12 matches across 4 files"],
+  editing: ["> editing src/components/Card.tsx", "+ added prop `status`", "+ wired conditional render"],
+  testing: ["$ npm test", "PASS src/App.test.tsx", "Tests: 14 passed, 14 total"],
+  committing: ["$ git commit -m 'feat: add status prop'", "$ git push origin feature/status-prop"],
+};
+
 const STEP_SCRIPT = [
-  { step: "planning", detail: "Reading task description and repo layout", delayMs: 1200 },
-  { step: "exploring", detail: "Searching for related files", delayMs: 1800 },
-  { step: "editing", detail: "Writing changes to source files", delayMs: 2200 },
-  { step: "testing", detail: "Running test suite", delayMs: 1800 },
-  { step: "committing", detail: "Committing and pushing changes", delayMs: 1200 },
+  { step: "planning", delayMs: 1200 },
+  { step: "exploring", delayMs: 1800 },
+  { step: "editing", delayMs: 2200 },
+  { step: "testing", delayMs: 1800 },
+  { step: "committing", delayMs: 1200 },
 ];
 
 function pick(arr) {
@@ -17,6 +56,13 @@ function pick(arr) {
 
 function wait(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function logLine(runId, line) {
+  await supabase.from("agent_logs").insert({ run_id: runId, line }).then(
+    () => {},
+    () => {} // agent_logs may not exist yet on an un-migrated project; ignore
+  );
 }
 
 async function runOneDemoAgent(index) {
@@ -39,6 +85,8 @@ async function runOneDemoAgent(index) {
       status: "running",
       current_step: "starting",
       message: `Kicking off "${task}"`,
+      thinking: `Starting work on "${task}"...`,
+      progress_pct: 0,
     })
     .select()
     .single();
@@ -53,21 +101,69 @@ async function runOneDemoAgent(index) {
     detail: `${agent_name} picked up "${task}" in ${repo}`,
   });
 
-  for (const step of STEP_SCRIPT) {
+  // Occasionally simulate a blocked run partway through, to exercise that
+  // status visually (dashboard should clearly flag it, not just fade it).
+  const willBlock = Math.random() < 0.18;
+
+  for (let i = 0; i < STEP_SCRIPT.length; i++) {
+    const step = STEP_SCRIPT[i];
     await wait(step.delayMs);
-    await supabase
-      .from("agent_runs")
-      .update({
-        current_step: step.step,
-        message: step.detail,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", run.id);
+
+    const files = FILES_BY_STEP[step.step];
+    const currentFile = files ? pick(files) : null;
+    const thinkingLines = THINKING_SCRIPT[step.step] || [];
+    const progress = Math.round(((i + 1) / STEP_SCRIPT.length) * 90);
+
+    if (willBlock && step.step === "testing") {
+      await supabase
+        .from("agent_runs")
+        .update({
+          status: "blocked",
+          current_step: step.step,
+          message: "Waiting on a flaky CI runner",
+          thinking: "Test run hung — waiting on CI before retrying.",
+          current_file: currentFile,
+          progress_pct: progress,
+          blocked_reason: "CI runner unresponsive for >60s; will retry automatically.",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", run.id);
+
+      await supabase.from("agent_events").insert({
+        run_id: run.id,
+        event_type: "blocked",
+        detail: "Blocked: waiting on a flaky CI runner",
+      });
+      await logLine(run.id, "! CI runner unresponsive, retrying in 10s...");
+      await wait(2500);
+    }
+
+    for (const line of thinkingLines) {
+      await supabase
+        .from("agent_runs")
+        .update({
+          current_step: step.step,
+          message: line,
+          thinking: line,
+          current_file: currentFile,
+          status: "running",
+          progress_pct: progress,
+          blocked_reason: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", run.id);
+      await wait(350);
+    }
+
+    for (const line of LOG_SCRIPT[step.step] || []) {
+      await logLine(run.id, line);
+      await wait(150);
+    }
 
     await supabase.from("agent_events").insert({
       run_id: run.id,
       event_type: "step",
-      detail: step.detail,
+      detail: thinkingLines[thinkingLines.length - 1] || step.step,
     });
   }
 
@@ -81,6 +177,11 @@ async function runOneDemoAgent(index) {
         finalStatus === "done"
           ? "Finished up and pushed the branch"
           : "Hit an error and stopped",
+      thinking:
+        finalStatus === "done"
+          ? "All good — branch pushed, ready for review."
+          : "Ran into an unexpected error, stopping here.",
+      progress_pct: finalStatus === "done" ? 100 : null,
       updated_at: new Date().toISOString(),
     })
     .eq("id", run.id);
